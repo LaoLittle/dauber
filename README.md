@@ -6,4 +6,4 @@ A simple 2D vector graphics library in Rust
 - [ ] GPU Rendering
 - [ ] Software Rendering
 - [ ] Text Rendering
-- [ ] 
+- [ ] Image Rendering
