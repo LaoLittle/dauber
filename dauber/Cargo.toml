@@ -1,0 +1,22 @@
+[package]
+name = "dauber"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.dauber-core]
+version = "0"
+path = "../dauber-core"
+
+[dependencies.dauber-software]
+version = "0"
+path = "../dauber-software"
+optional = true
+
+[dependencies.dauber-gpu]
+version = "0"
+path = "../dauber-gpu"
+optional = true
+
+[features]
+software = ["dauber-software"]
+gpu = ["dauber-gpu"]

@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "dauber",
+    "dauber-core",
+    "dauber-gpu",
+    "dauber-software"
+]

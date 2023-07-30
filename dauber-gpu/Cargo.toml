@@ -1,0 +1,22 @@
+[package]
+name = "dauber-gpu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pollster = "0.3.0"
+image = "0.24.6"
+
+[dependencies.wgpu]
+version = "0.17.0"
+
+[dependencies.lyon]
+version = "1.0.1"
+
+[dependencies.bytemuck]
+version = "1.13.1"
+features = ["derive"]
+
+[dependencies.dauber-core]
+version = "0"
+path = "../dauber-core"
