@@ -4,9 +4,19 @@ use crate::color::Color;
 pub struct Paint {
     color: Color,
     style: PaintStyle,
+    pub anti_alias: bool,
 }
 
 impl Paint {
+    #[inline]
+    pub const fn new() -> Self {
+        Self {
+            color: Color::BLACK,
+            style: PaintStyle::Fill,
+            anti_alias: false,
+        }
+    }
+
     #[inline]
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
@@ -29,10 +39,7 @@ impl Paint {
 impl Default for Paint {
     #[inline]
     fn default() -> Self {
-        Self {
-            color: Color::BLACK,
-            style: PaintStyle::Fill,
-        }
+        Self::new()
     }
 }
 

@@ -2,4 +2,3 @@
 /target
 /Cargo.lock
 /dauber-gpu/out.png
-/dauber-gpu/tests

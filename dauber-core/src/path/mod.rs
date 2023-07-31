@@ -1,4 +1,7 @@
+mod math;
+
 use crate::geom::point::Point;
+use crate::path::math::add_circle;
 
 #[derive(Clone)]
 pub struct Path {
@@ -25,8 +28,23 @@ impl Path {
         self.points.push(to);
     }
 
+    pub fn quad_to(&mut self, ctrl: Point, to: Point) {
+        self.verb.push(PathVerb::Quad);
+        self.points.extend([ctrl, to]);
+    }
+
+    pub fn cubic_to(&mut self, ctrl1: Point, ctrl2: Point, to: Point) {
+        self.verb.push(PathVerb::Cubic);
+        self.points.extend([ctrl1, ctrl2, to]);
+    }
+
     pub fn close(&mut self) {
         self.verb.push(PathVerb::Close);
+    }
+
+    #[inline]
+    pub fn add_circle(&mut self, center: Point, radius: f32) {
+        add_circle(self, center, radius);
     }
 
     pub fn iter(&self) -> Iter {
