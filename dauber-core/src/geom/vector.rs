@@ -7,8 +7,6 @@ pub struct Vector<T> {
 impl<T> Vector<T> {
     #[inline]
     pub const fn new(x: T, y: T) -> Self {
-        Self {
-            x,y
-        }
+        Self { x, y }
     }
 }

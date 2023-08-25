@@ -30,8 +30,16 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     );
 }
 
+struct Paint {
+    color: vec4<f32>,
+};
+
+@group(0)
+@binding(1)
+var<uniform> paint: Paint;
+
 @fragment
 fn fs_main() -> @location(0) vec4<f32> {
 // rgba
-    return vec4<f32>(0.0, 1.0, 1.0, 1.0);
+    return paint.color;
 }

@@ -2,8 +2,8 @@ use crate::color::Color;
 
 #[derive(Clone, Debug)]
 pub struct Paint {
-    color: Color,
-    style: PaintStyle,
+    pub color: Color,
+    pub style: PaintStyle,
     pub anti_alias: bool,
 }
 
@@ -18,13 +18,18 @@ impl Paint {
     }
 
     #[inline]
-    pub fn set_color(&mut self, color: Color) {
-        self.color = color;
+    pub fn set_color<C: Into<Color>>(&mut self, color: C) {
+        self.color = color.into();
     }
 
     #[inline]
     pub fn set_style(&mut self, style: PaintStyle) {
         self.style = style;
+    }
+
+    #[inline]
+    pub fn set_anti_alias(&mut self, anti_alias: bool) {
+        self.anti_alias = anti_alias;
     }
 
     pub fn style(&self) -> PaintStyle {

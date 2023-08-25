@@ -13,6 +13,12 @@ pub struct Vertex {
     pub pos: [f32; 2],
 }
 
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Copy, Clone, Debug)]
+#[repr(C)]
+pub struct ShaderPaint {
+    pub color: [f32; 4],
+}
+
 impl Vertex {
     pub const fn layout() -> VertexBufferLayout<'static> {
         VertexBufferLayout {

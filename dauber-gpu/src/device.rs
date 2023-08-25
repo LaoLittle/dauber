@@ -1,4 +1,4 @@
-use crate::types::{Globals, Vertex};
+use crate::types::{Globals, ShaderPaint, Vertex};
 use dauber_core::color::Color;
 use dauber_core::device::Device;
 use dauber_core::geom::point::Point;
@@ -29,6 +29,7 @@ pub struct Wgpu {
     msaa_texture_view: wgpu::TextureView,
 
     globals_buffer: wgpu::Buffer,
+    paint_buffer: wgpu::Buffer,
 
     output_buffer: wgpu::Buffer,
 
@@ -45,6 +46,34 @@ impl Wgpu {
         if let Some(_) = &self.clear {
             self.draw_path(&Path::new(), &Paint::new());
         }
+
+        let ImageInfo { width, height } = self.info;
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+        encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+                aspect: wgpu::TextureAspect::All,
+                texture: &self.surface_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+            },
+            wgpu::ImageCopyBuffer {
+                buffer: &self.output_buffer,
+                layout: wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(U32_SIZE * width),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        self.queue.submit([encoder.finish()]);
     }
 
     pub fn clear(&mut self, color: Color) {
@@ -130,6 +159,7 @@ impl Device for Wgpu {
         let texture = device.create_texture(&texture_desc);
         let texture_view = texture.create_view(&texture_view_desc);
 
+        texture_desc.usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
         texture_desc.sample_count = 4;
         let msaa_texture = device.create_texture(&texture_desc);
         let msaa_texture_view = msaa_texture.create_view(&texture_view_desc);
@@ -147,24 +177,45 @@ impl Device for Wgpu {
 
         let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        NonZeroU64::new(std::mem::size_of::<Globals>() as u64).unwrap(),
-                    ),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(
+                            NonZeroU64::new(std::mem::size_of::<Globals>() as u64).unwrap(),
+                        ),
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(
+                            NonZeroU64::new(std::mem::size_of::<Paint>() as u64).unwrap(),
+                        ),
+                    },
+                    count: None,
+                },
+            ],
         });
 
         let globals_buffer = device.create_buffer(&BufferDescriptor {
             label: None,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             size: std::mem::size_of::<Globals>() as u64,
+            mapped_at_creation: false,
+        });
+
+        let paint_buffer = device.create_buffer(&BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            size: std::mem::size_of::<Paint>() as u64,
             mapped_at_creation: false,
         });
 
@@ -179,14 +230,24 @@ impl Device for Wgpu {
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &globals_buffer,
-                    offset: 0,
-                    size: None,
-                }),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &globals_buffer,
+                        offset: 0,
+                        size: None,
+                    }),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &paint_buffer,
+                        offset: 0,
+                        size: None,
+                    }),
+                },
+            ],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -253,6 +314,7 @@ impl Device for Wgpu {
             msaa_texture,
             msaa_texture_view,
             globals_buffer,
+            paint_buffer,
             output_buffer,
             render_pipeline,
             msaa_render_pipeline,
@@ -357,6 +419,14 @@ impl Device for Wgpu {
             }
         }
 
+        self.queue.write_buffer(
+            &self.paint_buffer,
+            0,
+            bytemuck::bytes_of(&ShaderPaint {
+                color: paint.color().to_array(),
+            }),
+        );
+
         let indices_len = buffers.indices.len() as u32;
 
         let vertex_buffer = self
@@ -420,30 +490,6 @@ impl Device for Wgpu {
             rpass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint16);
             rpass.draw_indexed(0..indices_len, 0, 0..1);
         }
-
-        let ImageInfo { width, height } = self.info;
-
-        encoder.copy_texture_to_buffer(
-            wgpu::ImageCopyTexture {
-                aspect: wgpu::TextureAspect::All,
-                texture: &self.surface_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-            },
-            wgpu::ImageCopyBuffer {
-                buffer: &self.output_buffer,
-                layout: wgpu::ImageDataLayout {
-                    offset: 0,
-                    bytes_per_row: Some(U32_SIZE * width),
-                    rows_per_image: Some(height),
-                },
-            },
-            wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
-        );
 
         self.queue.submit([encoder.finish()]);
     }

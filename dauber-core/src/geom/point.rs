@@ -1,5 +1,5 @@
-use std::ops::Add;
 use crate::geom::vector::Vector;
+use std::ops::Add;
 
 #[derive(Copy, Clone)]
 pub struct Point {
@@ -39,7 +39,7 @@ impl From<[f32; 2]> for Point {
 
 impl From<Vector<f32>> for Point {
     #[inline]
-    fn from(Vector { x,y } : Vector<f32>) -> Self {
-        Self { x,y }
+    fn from(Vector { x, y }: Vector<f32>) -> Self {
+        Self { x, y }
     }
 }

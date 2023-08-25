@@ -9,6 +9,11 @@ pub type DynSurface = Surface<Box<dyn Device>>;
 
 impl<D: Device> Surface<D> {
     #[inline]
+    pub const fn new_from_device(device: D) -> Self {
+        Self { device }
+    }
+
+    #[inline]
     pub fn width(&self) -> u32 {
         self.device.image_info().width
     }
